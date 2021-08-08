@@ -1,0 +1,148 @@
+openapi: "3.0.1"
+info:
+  title: "image-processor"
+  version: "2021-08-05 20:07:09UTC"
+servers:
+- url: "https://7c9tofm0lf.execute-api.us-east-1.amazonaws.com/{basePath}"
+  variables:
+    basePath:
+      default: ""
+paths:
+  /blobs/{blob_id}:
+    get:
+      responses:
+        '200':
+          description:  Single blob info with id
+          content:
+            application/json:    
+              schema:
+                $ref: "#/components/schemas/Blob"
+        '404':
+          description: Blob not found error
+          content:
+            application/json:    
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+      parameters:
+        - name: blob_id
+          in: path
+          description: 'Id of the blob.'
+          required: true
+          example: "8c58583db0ff4a9c9ec79d5d87de4a98"
+          schema:
+            type: string
+        
+  /blobs:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                callback-url:
+                  type: string
+      responses:
+        '200':
+          description: Signed url for uploading blob with blob id
+          content:
+            application/json:    
+              schema:
+                $ref: "#/components/schemas/SignedUrl"
+              example:
+                {
+                  "id": "8c58583db0ff4a9c9ec79d5d87de4a98",
+                  "presigned_url": {
+                    "url": "https://presignedurl-blobs-bucket.s3.amazonaws.com/",
+                    "fields": {
+                      "key": "8c58583db0ff4a9c9ec79d5d87de4a98",
+                      "AWSAccessKeyId": "ASIAVPSF7WTXP4LVP3TP",
+                      "x-amz-security-token": "IQoJb3JpZ2luX2VjEEcaCXVzLWVhc3QtMSJIMEYCIQCdyfK5vmA0ZqnWwYglW9JOSMkKjwpxOe++Ed7TRZovUQIhAJI8gAeqO/hfjMcHsueEgsYIcqNbvU/RygfWQ43P8od7KqMCCF8QARoMMzc3MDMwMTYxNjQ2IgztznwuHw+hk6AsMOAqgAKVpzj+CaLTWLK2GRKsRGnGuTPs6T4fPrYXh8e5wD2pkSUZG7gtMbfZ97Tw7Pgjrs0bgGjGYsOlDvV1MvYIERyZVa0QCc20hBC6GCKcaPQZYbuOFQKTPcMIM6yeeQHhlh2Jc/eJTqtEiGY5XvDht1WyexQevFgQRkaIanOXjjDlU1Gen9gBTWjR98nJkgy4WYNf8/L4HDZQWl38FTe/+kYje16ikbi4q1qHWXWxKT4L3fE+8putQ+CX+fgcyGJGOh4Rk4pI2GP17yRixLv6Ea8bJCpJ1zI94onetksatRbxfYhSeycHnCaXYW2Hy3BRlibJUEVCueWToT2ZmBF+TnbZMOiKtYgGOpkBbHxAIXzFM3BMSXoQ56u8mDjexE+C7AmY9sFe9+jhZYN2nS4AU0hYxydfd+AG1MGHYeAryFIcUmKqSK2gtmAlcHifshMhEDGw36Xqqj+7ZEx0a1tn+eby8lM7js+0ThzUaVlFmoRstCFYxF+RdmglnLAYwP0c4AD/qALf19i+2GxR/7SuBWyrkeboJEY78892uT8SBdpNDnzc",
+                      "policy": "eyJleHBpcmF0aW9uIjogIjIwMjEtMDgtMDZUMTU6MjE6MjlaIiwgImNvbmRpdGlvbnMiOiBbeyJidWNrZXQiOiAicHJlc2lnbmVkdXJsLWJsb2JzLWJ1Y2tldCJ9LCB7ImtleSI6ICI4YzU4NTgzZGIwZmY0YTljOWVjNzlkNWQ4N2RlNGE5OCJ9LCB7IngtYW16LXNlY3VyaXR5LXRva2VuIjogIklRb0piM0pwWjJsdVgyVmpFRWNhQ1hWekxXVmhjM1F0TVNKSU1FWUNJUUNkeWZLNXZtQTBacW5Xd1lnbFc5Sk9TTWtLandweE9lKytFZDdUUlpvdlVRSWhBSkk4Z0FlcU8vaGZqTWNIc3VlRWdzWUljcU5idlUvUnlnZldRNDNQOG9kN0txTUNDRjhRQVJvTU16YzNNRE13TVRZeE5qUTJJZ3p0em53dUh3K2hrNkFzTU9BcWdBS1ZwemorQ2FMVFdMSzJHUktzUkduR3VUUHM2VDRmUHJZWGg4ZTV3RDJwa1NVWkc3Z3RNYmZaOTdUdzdQZ2pyczBiZ0dqR1lzT2xEdlYxTXZZSUVSeVpWYTBRQ2MyMGhCQzZHQ0tjYVBRWllidU9GUUtUUGNNSU02eWVlUUhobGgySmMvZUpUcXRFaUdZNVh2RGh0MVd5ZXhRZXZGZ1FSa2FJYW5PWGpqRGxVMUdlbjlnQlRXalI5OG5Ka2d5NFdZTmY4L0w0SERaUVdsMzhGVGUvK2tZamUxNmlrYmk0cTFxSFdYV3hLVDRMM2ZFKzhwdXRRK0NYK2ZnY3lHSkdPaDRSazRwSTJHUDE3eVJpeEx2NkVhOGJKQ3BKMXpJOTRvbmV0a3NhdFJieGZZaFNleWNIbkNhWFlXMkh5M0JSbGliSlVFVkN1ZVdUb1QyWm1CRitUbmJaTU9pS3RZZ0dPcGtCYkh4QUlYekZNM0JNU1hvUTU2dThtRGpleEUrQzdBbVk5c0ZlOStqaFpZTjJuUzRBVTBoWXh5ZGZkK0FHMU1HSFllQXJ5RkljVW1LcVNLMmd0bUFsY0hpZnNoTWhFREd3MzZYcXFqKzdaRXgwYTF0bitlYnk4bE03anMrMFRoelVhVmxGbW9Sc3RDRll4RitSZG1nbG5MQVl3UDBjNEFEL3FBTGYxOWkrMkd4Ui83U3VCV3lya2Vib0pFWTc4ODkydVQ4U0JkcE5EbnpjIn1dfQ==",
+                      "signature": "A22Z3Mjsk1/Di3G5GYK+3r+BNkg="
+                    }
+                  },
+                  "createdAt": "1628259689.7189429"
+                }
+        '503':
+          description: Service unavailable error
+          content:
+            application/json:    
+              schema:
+                $ref: "#/components/schemas/Error"
+        '400':
+          description: Invalid request due to callback_url format
+          content:
+            application/json:    
+              schema:
+                $ref: "#/components/schemas/Error"
+            
+        default:
+          description: "Default response for POST /blobs"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        
+
+components:
+  schemas:
+    Blob:
+      type: object
+      properties:
+        id:
+          type: string
+        labelled:
+          type: boolean
+        label:
+          type: string
+        error:
+          type: boolean
+        error_message:
+          type: string
+    SignedUrl:
+      type: object
+      required:
+        - id
+        - presigned_url
+      properties:
+        id:
+          type: string
+        createdAt:
+          type: number
+        presigned_url:
+          type: object
+          properties:
+            url:
+              type: string
+              format: uriref
+            fields:
+              type: object
+              properties:
+                key:
+                  type: string
+                AWSAccessKeyId:
+                  type: string
+                x-amz-security-token:
+                  type: string
+                policy:
+                  type: string
+                signature:
+                  type: string
+    Error:
+      type: object
+      required:
+        - statusCode
+        - errorMessage
+      properties:
+        statusCode:
+          type: integer
+          format: int32
+        errorMessage:
+          type: string

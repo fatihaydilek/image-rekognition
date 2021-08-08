@@ -1,0 +1,144 @@
+service: image-processor
+
+frameworkVersion: '2'
+
+custom:
+  pythonRequirements:
+    pythonBin: python3
+    # dockerizePip: non-linux
+  bucketName: presignedurl-blobs-bucket
+  tableName: blobs-table
+
+provider:
+  region: us-east-1
+  name: aws
+  runtime: python3.8
+  lambdaHashingVersion: 20201221
+  environment:
+    DYNAMODB_TABLE: ${self:service}-${self:custom.tableName}
+    BUCKET_NAME: ${self:custom.bucketName}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
+    -  Effect: "Allow"
+       Action:
+         - "s3:PutBucketNotification"
+       Resource: "arn:aws:s3:::${self:custom.bucketName}"
+    - Effect: "Allow"
+      Action: 
+        - "rekognition:DetectLabels"
+      Resource: "*"
+        
+
+
+package:
+#  include:
+#    - include-me.py
+#    - include-me-dir/**
+ exclude:
+   - TestCases/**
+   - node_modules/**
+   - package.json
+   - package-lock.json
+
+
+functions:
+  processBlob:
+    handler: process_blob.handler
+    events:
+      - s3:
+          bucket: ${self:custom.bucketName}
+          event: s3:ObjectCreated:*
+          # rules:
+          #   - suffix: .png
+          existing: true
+  makeCallback:
+    handler: make_callback.handler
+    events:
+      - stream:
+          type: dynamodb
+          arn: { Fn::GetAtt: [ TodosDynamoDbTable, StreamArn ] }
+          batchSize: 1
+  createBlob:
+    handler: create_blob.handler
+    events:
+      - httpApi:
+          path: /blobs
+          method: post
+  getBlob:
+    handler: get_blob.handler
+    events:
+      - httpApi:
+          path: /blobs/{blob_id}
+          method: get
+  
+    
+
+plugins:
+  - serverless-python-requirements
+
+resources:
+  Resources:
+    TodosDynamoDbTable:
+      Type: 'AWS::DynamoDB::Table'
+      DeletionPolicy: Retain
+      Properties:
+        StreamSpecification:
+          StreamViewType: NEW_IMAGE
+        AttributeDefinitions:
+          -
+            AttributeName: id
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:provider.environment.DYNAMODB_TABLE}
+    UploadBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:custom.bucketName}
+        AccessControl: Private
+        PublicAccessBlockConfiguration:
+          BlockPublicAcls: true
+          BlockPublicPolicy: false
+          IgnorePublicAcls: true
+          RestrictPublicBuckets: true
+        CorsConfiguration:
+          CorsRules:
+          - AllowedMethods:
+            - GET
+            - PUT
+            - POST
+            - HEAD
+            AllowedOrigins:
+            - "*"
+            AllowedHeaders:
+            - "*"
+    UploadBucketPolicy:
+      Type: 'AWS::S3::BucketPolicy'
+      Properties:
+        PolicyDocument:
+          Statement:
+            - Sid: PublicReadForGetBucketObjects
+              Effect: Allow
+              Principal: '*'
+              Action:
+                - 's3:GetObject'
+                - 's3:PutObject'
+              Resource: arn:aws:s3:::${self:custom.bucketName}/*
+        Bucket:
+          Ref: UploadBucket
+
+
+  
